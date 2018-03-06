@@ -38,7 +38,7 @@
           name: test-vmdk
         spec:
           containers:
-          - image: gcr.io/google_containers/test-webserver
+          - image: k8s.gcr.io/test-webserver
             name: test-container
             volumeMounts:
             - mountPath: /test-vmdk
@@ -96,10 +96,10 @@
           volumePath: "[datastore1] volumes/myDisk"
           fsType: ext4
       ```
-      In the above example datastore1 is located in the root folder. If datastore is member of Datastore Cluster or located in sub folder, the folder path needs to be provided in the VolumePath as below. 
+      In the above example datastore1 is located in the root folder. If datastore is member of Datastore Cluster or located in sub folder, the folder path needs to be provided in the VolumePath as below.
       ```yaml
       vsphereVolume:
-          VolumePath:	"[DatastoreCluster/datastore1] volumes/myDisk" 
+          VolumePath:	"[DatastoreCluster/datastore1] volumes/myDisk"
       ```
 
       [Download example](vsphere-volume-pv.yaml?raw=true)
@@ -180,7 +180,7 @@
       spec:
         containers:
         - name: test-container
-          image: gcr.io/google_containers/test-webserver
+          image: k8s.gcr.io/test-webserver
           volumeMounts:
           - name: test-volume
             mountPath: /test-vmdk
@@ -240,7 +240,7 @@
       parameters:
           diskformat: zeroedthick
           datastore: VSANDatastore
-      ```     
+      ```
       If datastore is member of DataStore Cluster or within some sub folder, the datastore folder path needs to be provided in the datastore parameter as below.
 
        ```yaml
@@ -258,7 +258,7 @@
       Verifying storage class is created:
 
       ``` bash
-      $ kubectl describe storageclass fast 
+      $ kubectl describe storageclass fast
       Name:           fast
       IsDefaultClass: No
       Annotations:    <none>
@@ -350,7 +350,7 @@
       spec:
         containers:
         - name: test-container
-          image: gcr.io/google_containers/test-webserver
+          image: k8s.gcr.io/test-webserver
           volumeMounts:
           - name: test-volume
             mountPath: /test-vmdk
@@ -382,7 +382,7 @@
   __Note: Here you don't need to create persistent volume it is created for you.__
 
   1. Create Storage Class.
-     
+
      Example 1:
 
       ```yaml
@@ -420,7 +420,7 @@
 
   Vsphere Infrastructure(VI) Admins will have the ability to specify custom Virtual SAN Storage Capabilities during dynamic volume provisioning. You can now define storage requirements, such as performance and availability, in the form of storage capabilities during dynamic volume provisioning. The storage capability requirements are converted into a Virtual SAN policy which are then pushed down to the Virtual SAN layer when a persistent volume (virtual disk) is being created. The virtual disk is distributed across the Virtual SAN datastore to meet the requirements.
 
-  The official [VSAN policy documentation](https://pubs.vmware.com/vsphere-65/index.jsp?topic=%2Fcom.vmware.vsphere.virtualsan.doc%2FGUID-08911FD3-2462-4C1C-AE81-0D4DBC8F7990.html) describes in detail about each of the individual storage capabilities that are supported by VSAN. The user can specify these storage capabilities as part of storage class defintion based on his application needs.
+  The official [VSAN policy documentation](https://pubs.vmware.com/vsphere-65/index.jsp?topic=%2Fcom.vmware.vsphere.virtualsan.doc%2FGUID-08911FD3-2462-4C1C-AE81-0D4DBC8F7990.html) describes in detail about each of the individual storage capabilities that are supported by VSAN. The user can specify these storage capabilities as part of storage class definition based on his application needs.
 
   The policy settings can be one or more of the following:
 
@@ -568,7 +568,7 @@
       spec:
         containers:
         - name: test-container
-          image: gcr.io/google_containers/test-webserver
+          image: k8s.gcr.io/test-webserver
           volumeMounts:
           - name: test-volume
             mountPath: /test
@@ -633,12 +633,18 @@ vSphere volumes can be consumed by Stateful Sets.
        selector:
          app: nginx
      ---
-     apiVersion: apps/v1beta1
+     #  for k8s versions before 1.9.0 use apps/v1beta2  and before 1.8.0 use extensions/v1beta1
+     apiVersion:apps/v1
      kind: StatefulSet
      metadata:
        name: web
+       labels:
+         app: nginx
      spec:
        serviceName: "nginx"
+       selector:
+         matchLabels:
+           app: nginx
        replicas: 14
        template:
          metadata:
@@ -647,7 +653,7 @@ vSphere volumes can be consumed by Stateful Sets.
          spec:
            containers:
            - name: nginx
-             image: gcr.io/google_containers/nginx-slim:0.8
+             image: k8s.gcr.io/nginx-slim:0.8
              ports:
              - containerPort: 80
                name: web

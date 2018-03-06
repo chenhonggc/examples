@@ -101,7 +101,7 @@ For a complete example refer ([Portworx Volume docs](../volumes/portworx/README.
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: slow
+  name: fast
 provisioner: kubernetes.io/glusterfs
 parameters:
   resturl: "http://127.0.0.1:8081"
@@ -112,6 +112,8 @@ parameters:
   gidMin: "40000"
   gidMax: "50000"
   volumetype: "replicate:3"
+  volumeoptions: "client.ssl on, server.ssl on"
+  volumenameprefix: "dept-dev"
 ```
 
 Example storageclass can be found in [glusterfs-storageclass.yaml](glusterfs/glusterfs-storageclass.yaml).
@@ -145,17 +147,23 @@ For example:
   'Distribute volume':
     `volumetype: none`
 
-For available volume types and its administration options refer: ([Administration Guide](https://access.redhat.com/documentation/en-US/Red_Hat_Storage/3.1/html/Administration_Guide/part-Overview.html))
+For available volume types and its administration options refer: ([Administration Guide](http://docs.gluster.org/en/latest/Administrator%20Guide/Setting%20Up%20Volumes/))
 
-* `volumeoptions` : This option allows to specify the gluster volume option which has to be set on the dynamically provisioned GlusterFS volume. The value string should be comma seperated strings which need to be set on the volume. As shown in example, if you want to enable encryption on gluster dynamically provisioned volumes you can pass `client.ssl on, server.ssl on` options. This is an optional parameter.
+* `volumeoptions` : This option allows to specify the gluster volume option which has to be set on the dynamically provisioned GlusterFS volume. The value string should be comma separated strings which need to be set on the volume. As shown in example, if you want to enable encryption on gluster dynamically provisioned volumes you can pass `client.ssl on, server.ssl on` options. This is an optional parameter.
 
-For available volume options and its administration refer: ([Administration Guide](https://access.redhat.com/documentation/en-us/red_hat_gluster_storage/3.2/html/administration_guide/chap-managing_red_hat_storage_volumes))
+For available volume options and its administration refer: ([Administration Guide](http://docs.gluster.org/en/latest/Administrator%20Guide/Managing%20Volumes/))
+
+* `volumenameprefix` : By default dynamically provisioned volumes has the naming schema of `vol_UUID` format. With this option present in storageclass, an admin can now prefix the desired volume name from storageclass. If `volumenameprefix` storageclass parameter is set, the dynamically provisioned volumes are created in below format where `_` is the field separator/delimiter:
+
+`volumenameprefix_Namespace_PVCname_randomUUID`
+
+Please note that, the value for this parameter cannot contain `_` in storageclass. This is an optional parameter.
 
 Reference : ([How to configure Gluster on Kubernetes](https://github.com/gluster/gluster-kubernetes/blob/master/docs/setup-guide.md))
 
 Reference : ([How to configure Heketi](https://github.com/heketi/heketi/wiki/Setting-up-the-topology))
 
-When the persistent volumes are dynamically provisioned, the Gluster plugin automatically create an endpoint and a headless service in the name `gluster-dynamic-<claimname>`. This dynamic endpoint and service will be deleted automatically when the persistent volume claim is deleted.
+When the persistent volumes are dynamically provisioned, the Gluster plugin automatically create an endpoint and a headless service in the name `glusterfs-dynamic-<claimname>`. This dynamic endpoint and service will be deleted automatically when the persistent volume claim is deleted.
 
 
 #### OpenStack Cinder
@@ -193,18 +201,18 @@ parameters:
     userId: kube
     userSecretName: ceph-secret-user
     fsType: ext4
-    imageFormat: "1"
+    imageFormat: "2"
 ```
 
 * `monitors`: Ceph monitors, comma delimited. It is required.
 * `adminId`: Ceph client ID that is capable of creating images in the pool. Default is "admin".
-* `adminSecret`: Secret Name for `adminId`. It is required. The provided secret must have type "kubernetes.io/rbd".
+* `adminSecretName`: Secret Name for `adminId`. It is required. The provided secret must have type "kubernetes.io/rbd".
 * `adminSecretNamespace`: The namespace for `adminSecret`. Default is "default".
 * `pool`: Ceph RBD pool. Default is "rbd".
 * `userId`: Ceph client ID that is used to map the RBD image. Default is the same as `adminId`.
 * `userSecretName`: The name of Ceph Secret for `userId` to map RBD image. It must exist in the same namespace as PVCs. It is required.
 * `fsType`: fsType that are supported by kubernetes. Default: `"ext4"`.
-* `imageFormat`: Ceph RBD image format, "1" or "2". Default is "1".
+* `imageFormat`: Ceph RBD image format, "1" or "2". Default is "2".
 * `imageFeatures`: Ceph RBD image format 2 features, comma delimited. This is optional, and only be used if you set `imageFormat` to "2". Currently supported features are `layering` only. Default is "", no features is turned on.
 
 NOTE: We cannot turn on `exclusive-lock` feature for now (and `object-map`, `fast-diff`, `journaling` which require `exclusive-lock`), because exclusive lock and advisory lock cannot work together. (See [#45805](https://issue.k8s.io/45805))
@@ -274,19 +282,19 @@ Access Modes:   RWO
 No events.
 
 $ kubectl describe pv
-Name:  		pvc-bdb82652-694a-11e6-b811-080027242396
+Name:       pvc-bdb82652-694a-11e6-b811-080027242396
 Labels:		<none>
 Status:		Bound
-Claim: 		default/claim1
+Claim:      default/claim1
 Reclaim Policy:	Delete
-Access Modes:  	RWO
-Capacity:      	3Gi
+Access Modes:   RWO
+Capacity:       3Gi
 Message:
 Source:
-    Type:      	Quobyte (a Quobyte mount on the host that shares a pod's lifetime)
-    Registry:  	138.68.79.14:7861
-    Volume:    	kubernetes-dynamic-pvc-bdb97c58-694a-11e6-91b6-080027242396
-    ReadOnly:  	false
+    Type:       Quobyte (a Quobyte mount on the host that shares a pod's lifetime)
+    Registry:   138.68.79.14:7861
+    Volume:     kubernetes-dynamic-pvc-bdb97c58-694a-11e6-91b6-080027242396
+    ReadOnly:   false
 No events.
 ```
 
@@ -434,7 +442,7 @@ The kube-controller-manager is now able to provision storage, however we still n
 $ ceph osd pool create kube 512
 $ ceph auth get-or-create client.kube mon 'allow r' osd 'allow rwx pool=kube'
 [client.kube]
-	key = AQBQyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy==
+    key = AQBQyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy==
 ```
 
 This key will be made into a secret, just like the admin secret. However this user secret will need to be created in every namespace where you intend to consume RBD volumes provisioned in our example storage class. Let's create a namespace called `myns`, and create the user secret in that namespace.
@@ -480,7 +488,7 @@ Source:
     Type:		RBD (a Rados Block Device mount on the host that shares a pod's lifetime)
     CephMonitors:	[127.0.0.1:6789]
     RBDImage:		kubernetes-dynamic-pvc-1cfb1862-664b-11e6-9a5d-90b11c09520d
-    FSType:		
+    FSType:
     RBDPool:		kube
     RadosUser:		kube
     Keyring:		/etc/ceph/keyring

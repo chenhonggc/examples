@@ -84,7 +84,7 @@ metadata:
   name: pod-0
 spec:
   containers:
-  - image: gcr.io/google_containers/test-webserver
+  - image: k8s.gcr.io/test-webserver
     name: pod-0
     volumeMounts:
     - mountPath: /test-pd
@@ -195,7 +195,7 @@ spec:
       storage: 10Gi
 ```
 
-Note the `spec:storageClassName` entry which specifies the name of the perviously defined StorageClass `sio-small` .
+Note the `spec:storageClassName` entry which specifies the name of the previously defined StorageClass `sio-small` .
 
 Next, deploy the PVC file.  This step will cause the Kubernetes ScaleIO plugin to create the volume in the storage system.  
 ```
@@ -221,7 +221,7 @@ metadata:
 spec:
   containers:
     - name: pod-sio-small-container
-      image: gcr.io/google_containers/test-webserver
+      image: k8s.gcr.io/test-webserver
       volumeMounts:
       - mountPath: /test
         name: test-data

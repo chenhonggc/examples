@@ -1,18 +1,24 @@
-apiVersion: "apps/v1beta1"
+apiVersion: "apps/v1" # for k8s versions before 1.9.0 use apps/v1beta2  and before 1.8.0 use extensions/v1beta1
 kind: StatefulSet
 metadata:
   name: cassandra
+  labels:
+     app: cassandra
 spec:
   serviceName: cassandra
   replicas: 3
+  selector:
+    matchLabels:
+      app: cassandra
   template:
     metadata:
       labels:
         app: cassandra
     spec:
+      terminationGracePeriodSeconds: 1800
       containers:
       - name: cassandra
-        image: gcr.io/google-samples/cassandra:v12
+        image: gcr.io/google-samples/cassandra:v13
         imagePullPolicy: Always
         ports:
         - containerPort: 7000
@@ -37,7 +43,10 @@ spec:
         lifecycle:
           preStop:
             exec:
-              command: ["/bin/sh", "-c", "PID=$(pidof java) && kill $PID && while ps -p $PID > /dev/null; do sleep 1; done"]
+              command: 
+              - /bin/sh
+              - -c
+              - nodetool drain
         env:
           - name: MAX_HEAP_SIZE
             value: 512M
@@ -51,8 +60,6 @@ spec:
             value: "DC1-K8Demo"
           - name: CASSANDRA_RACK
             value: "Rack1-K8Demo"
-          - name: CASSANDRA_AUTO_BOOTSTRAP
-            value: "false"
           - name: POD_IP
             valueFrom:
               fieldRef:
